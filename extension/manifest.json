@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Messenger ⇄ Discord Bridge",
+  "version": "1.1",
+  "description": "Bridge Messenger web with Discord using a bot and WebSockets (no webhooks, no Meta API).",
+  "permissions": ["scripting", "activeTab"],
+  "host_permissions": ["*://www.messenger.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://www.messenger.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

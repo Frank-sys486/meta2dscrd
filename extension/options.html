@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Messenger ↔ Discord Bot Bridge</title>
+    <style>
+      body { font: 14px/1.4 system-ui, sans-serif; padding: 20px; max-width: 720px; }
+      label { display:block; margin: 12px 0 6px; font-weight:600; }
+      input[type="text"], input[type="password"] { width: 100%; padding: 8px; }
+      .row { display:flex; gap:12px; }
+      .row > div { flex:1; }
+      .hint { color:#555; font-size:12px; }
+      button { margin-top:16px; padding:8px 12px; }
+      fieldset { border:1px solid #ddd; padding:12px; margin-top:18px; }
+      legend { padding:0 6px; }
+    </style>
+  </head>
+  <body>
+    <h1>Messenger ↔ Discord Bot Bridge</h1>
+    <p>Configure your <b>Discord Bot Token</b>, <b>Channel ID</b>, and the <b>Messenger message selector</b>.</p>
+
+    <label for="botToken">Discord Bot Token</label>
+    <input id="botToken" type="password" placeholder="Bot token" autocomplete="off" />
+
+    <div class="row">
+      <div>
+        <label for="channelId">Discord Channel ID (for posting)</label>
+        <input id="channelId" type="text" placeholder="123456789012345678" />
+      </div>
+      <div>
+        <label for="appUserName">Bot Display Name Prefix (optional)</label>
+        <input id="appUserName" type="text" placeholder="Messenger" />
+      </div>
+    </div>
+
+    <label for="selector">Messenger Message Node CSS Selector</label>
+    <input id="selector" type="text" placeholder='div.x1gp6l83.x18b5jzi.x1alpsbp.x148vw1v.x1t7ytsu.xyumdvf.x78zum5.xdt5ytf.x1iyjqo2.x6ikm8r.x10wlt62' />
+    <div class="hint">Paste the exact bubble selector you trust. Only text from nodes matching this selector will be relayed.</div>
+
+    <fieldset>
+      <legend>Filters</legend>
+      <label><input type="checkbox" id="ignoreOwn" checked /> Ignore my own Messenger messages</label>
+      <label><input type="checkbox" id="sendImages" /> Include inline image URLs (skips avatars)</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Optional: Discord → Messenger</legend>
+      <div class="row">
+        <div>
+          <label for="guildId">Guild ID</label>
+          <input id="guildId" type="text" placeholder="123456789012345678" />
+        </div>
+        <div>
+          <label for="listenChannelId">Listen Channel ID</label>
+          <input id="listenChannelId" type="text" placeholder="same as Channel ID or another" />
+        </div>
+      </div>
+      <div class="hint">
+        If set, background connects to Discord Gateway and forwards new messages from this channel back into Messenger (typed & sent).
+      </div>
+    </fieldset>
+
+    <button id="saveBtn">Save</button>
+    <span id="status"></span>
+
+    <script src="options.js"></script>
+  </body>
+</html>
