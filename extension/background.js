@@ -1,4 +1,19 @@
 let ws;
+const pending = [];
+
+function flushPending() {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  while (pending.length) {
+    const payload = pending.shift();
+    try {
+      ws.send(payload);
+    } catch (err) {
+      console.warn("[WS] failed to flush message", err);
+      pending.unshift(payload);
+      break;
+    }
+  }
+}
 
 function connectWS() {
   ws = new WebSocket("ws://localhost:8080");
@@ -6,6 +21,7 @@ function connectWS() {
   ws.onopen = () => {
     console.log("[WS] connected to bot");
     ws.send(JSON.stringify({ kind: "ping" }));
+    flushPending();
   };
 
   ws.onclose = () => {
@@ -95,8 +111,17 @@ function receiveFromDiscordInPage(payload) {
 
 // Relay content-script messages over WS
 chrome.runtime.onMessage.addListener((msg) => {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-  ws.send(JSON.stringify(msg));
+  const payload = JSON.stringify(msg);
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    pending.push(payload);
+    return;
+  }
+  try {
+    ws.send(payload);
+  } catch (err) {
+    console.warn("[WS] failed to send message", err);
+    pending.unshift(payload);
+  }
 });
 
 connectWS();
