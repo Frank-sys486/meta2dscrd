@@ -50,6 +50,16 @@ function parseBubbleIfNew(bubble) {
           type: "text",
           content: textContent
         });
+      } else {
+        const fallbackText = fallbackBubbleText(bubble);
+        if (fallbackText) {
+          chrome.runtime.sendMessage({
+            direction: "messenger_to_discord",
+            sender,
+            type: "text",
+            content: fallbackText
+          });
+        }
       }
     })
     .catch(console.warn);
@@ -71,6 +81,11 @@ function extractTextFromBubble(bubble) {
     if (t) parts.push(t);
   });
   return parts.join("\n").trim();
+}
+
+function fallbackBubbleText(bubble) {
+  const raw = bubble.innerText || "";
+  return raw.trim();
 }
 
 function extractFilesFromBubble(bubble) {
