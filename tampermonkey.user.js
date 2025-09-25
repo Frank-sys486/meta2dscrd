@@ -25,6 +25,8 @@
   let statusTimer;
   let statusNode;
 
+
+
   function log(...args) {
     console.log("[Messenger↔Discord]", ...args);
   }
