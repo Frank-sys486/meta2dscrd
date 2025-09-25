@@ -22,6 +22,10 @@
   let ws;
   const pending = [];
   let reconnectTimer;
+  let statusTimer;
+  let statusNode;
+
+
 
   function log(...args) {
     console.log("[Messenger↔Discord]", ...args);
@@ -29,6 +33,42 @@
 
   function warn(...args) {
     console.warn("[Messenger↔Discord]", ...args);
+  }
+
+  function ensureStatusNode() {
+    if (statusNode && statusNode.isConnected) return statusNode;
+    statusNode = document.createElement("div");
+    statusNode.id = "m2d-status-banner";
+    Object.assign(statusNode.style, {
+      position: "fixed",
+      zIndex: 2147483647,
+      right: "16px",
+      bottom: "16px",
+      padding: "10px 14px",
+      borderRadius: "6px",
+      fontSize: "13px",
+      fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      color: "#fff",
+      background: "#1d1f21",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+      opacity: "0",
+      transition: "opacity 0.2s ease-in-out"
+    });
+    document.body.appendChild(statusNode);
+    return statusNode;
+  }
+
+  function showStatus(message, tone = "info", linger = 2000) {
+    const el = ensureStatusNode();
+    el.textContent = message;
+    el.style.background = tone === "connected" ? "#2d7a46" : tone === "error" ? "#a83232" : "#1d1f21";
+    clearTimeout(statusTimer);
+    requestAnimationFrame(() => {
+      el.style.opacity = "1";
+      statusTimer = setTimeout(() => {
+        el.style.opacity = "0";
+      }, linger);
+    });
   }
 
   function scheduleReconnect() {
@@ -51,17 +91,20 @@
 
     ws.addEventListener("open", () => {
       log("Connected to Discord bot");
+      showStatus("Messenger ↔ Discord connected", "connected", 3000);
       sendRaw({ kind: "ping" });
       flushPending();
     });
 
     ws.addEventListener("close", () => {
       warn("WebSocket closed; retrying soon");
+      showStatus("Messenger ↔ Discord reconnecting…", "error", 2500);
       scheduleReconnect();
     });
 
     ws.addEventListener("error", (event) => {
       warn("WebSocket error", event);
+      showStatus("Messenger ↔ Discord error", "error", 2500);
     });
 
     ws.addEventListener("message", (event) => {
@@ -92,6 +135,7 @@
 
   function sendRaw(obj) {
     const serialized = JSON.stringify(obj);
+    log("Queueing payload", obj);
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       pending.push(serialized);
       connectWS();
@@ -99,6 +143,9 @@
     }
     try {
       ws.send(serialized);
+      if (obj.direction === "messenger_to_discord") {
+        showStatus("Sent to Discord", "info", 1800);
+      }
     } catch (err) {
       warn("Failed to send payload", err);
       pending.unshift(serialized);
@@ -128,6 +175,7 @@
     } else if (payload.type === "file") {
       sendFilesToMessenger(payload.files || [], payload.content || "");
     }
+    showStatus("New message from Discord", "info", 2000);
   }
 
   function findComposer() {

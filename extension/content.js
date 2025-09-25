@@ -1,6 +1,13 @@
 // Watches Messenger DOM for new messages and forwards text/files to background -> WS -> bot.
 
-const SEEN = new Set();
+const PRIMARY_CONTAINER_SELECTOR = ["[data-message-id]", "[data-testid^='mw_message_row']", "[role='row']"].join(",");
+const MESSAGE_SELECTOR = [
+  PRIMARY_CONTAINER_SELECTOR,
+  "div[dir='auto'][class*='x1yc453h'][class*='x126k92a']"
+].join(",");
+
+const SEEN_NODES = new WeakSet();
+const SEEN_KEYS = new Set();
 
 const observer = new MutationObserver((mutations) => {
   for (const m of mutations) {
@@ -8,7 +15,7 @@ const observer = new MutationObserver((mutations) => {
       if (node.nodeType !== 1) continue;
 
       // Heuristic: each message row
-      const bubbles = node.matches?.('[role="row"]') ? [node] : node.querySelectorAll?.('[role="row"]');
+      const bubbles = collectCandidateNodes(node);
       if (!bubbles || bubbles.length === 0) continue;
 
       bubbles.forEach(parseBubbleIfNew);
@@ -20,17 +27,45 @@ observer.observe(document.body, { childList: true, subtree: true });
 
 // also sweep recent rows once after load
 setTimeout(() => {
-  document.querySelectorAll('[role="row"]').forEach(parseBubbleIfNew);
+  document.querySelectorAll(MESSAGE_SELECTOR).forEach(parseBubbleIfNew);
 }, 1500);
 
+setInterval(() => {
+  document.querySelectorAll(MESSAGE_SELECTOR).forEach(parseBubbleIfNew);
+}, 5000);
+
+function collectCandidateNodes(node) {
+  if (node.nodeType !== 1) return [];
+
+  const candidates = [];
+  if (node.matches?.(MESSAGE_SELECTOR)) {
+    candidates.push(node);
+  }
+  node.querySelectorAll?.(MESSAGE_SELECTOR)?.forEach((el) => {
+    if (!candidates.includes(el)) candidates.push(el);
+  });
+  return candidates;
+}
+
 function parseBubbleIfNew(bubble) {
-  const syntheticId = bubble.getAttribute("data-message-id") || bubble.outerHTML.slice(0, 400);
-  if (SEEN.has(syntheticId)) return;
-  SEEN.add(syntheticId);
+  if (!bubble) return;
+
+  const contextNode = bubble.matches?.(PRIMARY_CONTAINER_SELECTOR)
+    ? bubble
+    : bubble.closest?.(PRIMARY_CONTAINER_SELECTOR) || bubble;
+
+  if (SEEN_NODES.has(contextNode) || SEEN_NODES.has(bubble)) return;
+
+  const syntheticId = buildSyntheticId(contextNode);
+  if (syntheticId && SEEN_KEYS.has(syntheticId)) return;
+
+  SEEN_NODES.add(bubble);
+  SEEN_NODES.add(contextNode);
+  if (syntheticId) SEEN_KEYS.add(syntheticId);
 
   const { sender } = resolveSender();
-  const textContent = extractTextFromBubble(bubble);
-  const filePromises = extractFilesFromBubble(bubble);
+  const textContent = extractTextFromBubble(contextNode);
+  const filePromises = extractFilesFromBubble(contextNode);
 
   Promise.all(filePromises)
     .then((files) => {
@@ -63,6 +98,27 @@ function parseBubbleIfNew(bubble) {
       }
     })
     .catch(console.warn);
+}
+
+function buildSyntheticId(bubble) {
+  const dataId = bubble.getAttribute("data-message-id");
+  if (dataId) return dataId;
+
+  const time =
+    bubble.querySelector("time")?.getAttribute("datetime") ||
+    bubble.getAttribute("data-tooltip-content") ||
+    bubble.getAttribute("aria-label") ||
+    "";
+
+  const attachmentsKey = Array.from(bubble.querySelectorAll("img"))
+    .map((img) => img.currentSrc || img.src || "")
+    .filter(Boolean)
+    .join("|");
+
+  const text = extractTextFromBubble(bubble);
+  if (!text && !attachmentsKey) return "";
+
+  return `${time}::${text}::${attachmentsKey}`.slice(0, 500);
 }
 
 function resolveSender() {
