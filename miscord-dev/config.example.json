@@ -1,0 +1,59 @@
+{
+  "_comment": "This is an example config with default values, you can remove any of the values below from the config and it will still work.",
+  "messenger": {
+    "username": "",
+    "password": "",
+
+    "accounts": [
+      {
+        "username": "test",
+        "password": "pass"
+      },
+      {
+        "username": "another_account@gmail.com",
+        "password": "p4ssw0rd"
+      }
+    ],
+
+    "format": "*{username}*: {message}",
+    "sourceFormat": {
+      "discord": "(Discord)",
+      "messenger": "(Messenger: {name})"
+    },
+    "ignoreEmbeds": false,
+    "attachmentTooLargeError": true,
+    "sendPinned": false,
+
+    "handleEvents": true,
+    "handlePlans": true,
+    "handlePolls": true,
+
+    "showPlanDetails": true,
+    "showPollDetails": true
+  },
+  "discord": {
+    "token": "",
+
+    "guild": "",
+    "category": "",
+    "renameChannels": true,
+    "showFullNames": false,
+    "createChannels": false,
+
+    "massMentions": false,
+    "userMentions": true,
+    "roleMentions": true,
+
+    "ignoreBots": false,
+    "ignoredUsers": []
+  },
+  "channels": {
+    "error": "",
+    "command": ""
+  },
+  "checkUpdates": false,
+  "logLevel": "info",
+  "timezone": "",
+  "ignoredSequences": [],
+  "enableEval": false
+}
